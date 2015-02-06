@@ -121,20 +121,12 @@ function spawnLatexProcess(attempt, outputDirectory, outputLogs, callback){
 
 					function sendPdfStream(){
 						var readStream = fs.createReadStream(outputFilePath);
-						readStream.on("open", function(fd){
-							// ensure that the file is actually on disk and in the directory
-							// (avoid race where we try to unlink before the file is present)
-							sync(outputDirectory, fd, function(err1) {
-								// as soon as the file is opened we can clean
-								// up the dir -- we can continue reading from the
-								// deleted file until it is closed.
-								rimraf(outputDirectory, function(err2) {
-									// wait to invoke the callback, so we can
-									// properly report any errors which occurred
-									// during the rimraf.
-									if (err1 || err2) { fs.close(fd); return callback(err1 || err2); }
-									callback(null, readStream, outputLogs);
-								});
+						callback(null, readStream, outputLogs);
+						readStream.on("close", function(fd){
+							console.log("Closed Stream");
+							rimraf(outputDirectory, function(err2) {
+								console.log("Removed Temp Files");
+								if (err2) { fs.close(fd); throw err2; }
 							});
 						});
 					}
